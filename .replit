@@ -1,0 +1,22 @@
+modules = ["nodejs-18"]
+
+[nix]
+channel = "stable-22_11"
+
+[deploy]
+run = ["sh", "-c", "npm run build && npm start"]
+
+[env]
+NODE_ENV = "production"
+
+[packages]
+nodejs-18 = "*"
+
+[languages]
+javascript = { pattern = "**/*.{js,jsx,ts,tsx}" }
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix", ".replit"]
+
+[unitTest]
+language = "nodejs"
