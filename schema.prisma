@@ -1,0 +1,96 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  voiceProfiles VoiceProfile[]
+  rewriteJobs   RewriteJob[]
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Billing
+  stripeCustomerId String? @unique
+  subscriptionStatus String? // active, canceled, past_due, etc.
+  subscriptionPlan   String? // free, pro
+  
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VoiceProfile {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  language      String   @default("en")
+  fingerprintJson Json   // Style fingerprint: sentence length, formality, etc.
+  rulesJson     Json     // User do/don't rules
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewriteJobs   RewriteJob[]
+  
+  @@map("voice_profiles")
+}
+
+model RewriteJob {
+  id            String   @id @default(cuid())
+  userId        String
+  voiceProfileId String?
+  mode          String   // General, MoreNatural, HighQuality, Academic
+  language      String   @default("en")
+  inputText     String   @db.Text
+  outputText    String   @db.Text
+  changeLog     Json     // Array of changes made
+  metricsJson   Json     // Quality metrics
+  createdAt     DateTime @default(now())
+  
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceProfile  VoiceProfile? @relation(fields: [voiceProfileId], references: [id], onDelete: SetNull)
+  
+  @@map("rewrite_jobs")
+}
